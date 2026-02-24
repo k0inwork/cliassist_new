@@ -23,6 +23,38 @@ export class LogLearner {
     return commands;
   }
 
+  parseCorpus(corpusPath: string): CommandEvent[] {
+    if (!fs.existsSync(corpusPath)) return [];
+
+    const lines = fs.readFileSync(corpusPath, 'utf8').split('\n');
+    const commands: CommandEvent[] = [];
+
+    for (let line of lines) {
+      // Look for lines starting with user@ubuntu:~$ or user@ubuntu:~/...$
+      // and strip the prompt
+      const match = line.match(/^[\w.]+@[\w.-]+:[~\w./-]*\$\s+(.+)$/);
+      if (match) {
+        const cmd = match[1].trim();
+        if (cmd) {
+          commands.push({
+            id: uuidv4(),
+            commandLine: cmd,
+            argv: cmd.split(/\s+/),
+            cwd: '',
+            stdout: '',
+            stderr: '',
+            exitCode: 0,
+            startedAt: Date.now(),
+            finishedAt: Date.now(),
+            duration: 0
+          });
+        }
+      }
+    }
+
+    return commands;
+  }
+
   private parseBash(filePath: string): CommandEvent[] {
     const lines = fs.readFileSync(filePath, 'utf8').split('\n');
     return lines.filter(l => l.trim() && !l.startsWith('#')).map(line => ({
@@ -41,7 +73,6 @@ export class LogLearner {
 
   private parseZsh(filePath: string): CommandEvent[] {
     const lines = fs.readFileSync(filePath, 'utf8').split('\n');
-    // Zsh history often has format : 1234567890:0;command
     return lines.filter(l => l.trim()).map(line => {
       const parts = line.split(';');
       const cmd = parts.length > 1 ? parts.slice(1).join(';') : line;
@@ -61,12 +92,8 @@ export class LogLearner {
   }
 
   async learnCustomWorld(commands: CommandEvent[], baseWorld: World): Promise<World> {
-    // Simplified clustering for now
     const learnedTensors = { ...baseWorld.tensors };
-
-    // In a real implementation, we would use the VectorEngine to cluster
-    // these commands and create new tensors if they don't match existing ones.
-
+    // Future implementation: cluster commands and create new tensors
     return {
       ...baseWorld,
       id: `custom_world_${Date.now()}`,
