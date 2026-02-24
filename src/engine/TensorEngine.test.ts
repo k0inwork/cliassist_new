@@ -1,5 +1,8 @@
 import { TensorEngine } from './TensorEngine';
-import { CommandEvent, World, EngineState } from '../common/types';
+
+jest.mock('@xenova/transformers', () => ({
+  pipeline: jest.fn().mockResolvedValue(null)
+}));
 
 describe('TensorEngine', () => {
   it('should be able to initialize', () => {
